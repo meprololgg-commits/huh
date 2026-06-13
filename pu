@@ -17,7 +17,7 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "TrackingMenu"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = game.CoreGui
+ScreenGui.Parent = game.CoreGui["3373f53c4d159f88808866fb33cdb48064a5643e2697339ae89952abd5e48716"]
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
