@@ -1,34 +1,27 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Settings
 local isAimbotEnabled = true
 local trackingSensitivity = 0.1
-local predictionAmount = 0.18   -- <--- Prediction value (tune this)
+local predictionAmount = 0.18
 local usePrediction = true
 local isMinimized = false
 
 local params2 = RaycastParams.new()
 params2.FilterType = Enum.RaycastFilterType.Exclude
 
-local Connection
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "TrackingMenu"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
 ScreenGui.Parent = LocalPlayer.PlayerGui
-	--game.CoreGui["3373f53c4d159f88808866fb33cdb48064a5643e2697339ae89952abd5e48716"]
 
--- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 200)  -- Increased height
+MainFrame.Size = UDim2.new(0, 220, 0, 200)
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BackgroundTransparency = 0.25
@@ -42,7 +35,6 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 8)
 UICorner.Parent = MainFrame
 
--- Title
 local Title = Instance.new("TextLabel")
 Title.Name = "Title"
 Title.Size = UDim2.new(1, -40, 0, 35)
@@ -55,7 +47,6 @@ Title.Font = Enum.Font.SourceSansBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = MainFrame
 
--- Resize Button
 local ResizeBtn = Instance.new("TextButton")
 ResizeBtn.Name = "ResizeBtn"
 ResizeBtn.Size = UDim2.new(0, 25, 0, 25)
@@ -72,7 +63,6 @@ local ResizeCorner = Instance.new("UICorner")
 ResizeCorner.CornerRadius = UDim.new(0, 4)
 ResizeCorner.Parent = ResizeBtn
 
--- Content Frame
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Name = "ContentFrame"
 ContentFrame.Size = UDim2.new(1, 0, 1, -35)
@@ -80,7 +70,6 @@ ContentFrame.Position = UDim2.new(0, 0, 0, 35)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Parent = MainFrame
 
--- Toggle Button
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Name = "ToggleBtn"
 ToggleBtn.Size = UDim2.new(0, 180, 0, 35)
@@ -97,7 +86,6 @@ local BtnCorner = Instance.new("UICorner")
 BtnCorner.CornerRadius = UDim.new(0, 6)
 BtnCorner.Parent = ToggleBtn
 
--- Tracking Speed
 local SpeedLabel = Instance.new("TextLabel")
 SpeedLabel.Name = "SpeedLabel"
 SpeedLabel.Size = UDim2.new(0, 110, 0, 35)
@@ -127,7 +115,6 @@ local InputCorner = Instance.new("UICorner")
 InputCorner.CornerRadius = UDim.new(0, 4)
 InputCorner.Parent = SpeedInput
 
--- Prediction
 local PredictionLabel = Instance.new("TextLabel")
 PredictionLabel.Name = "PredictionLabel"
 PredictionLabel.Size = UDim2.new(0, 110, 0, 35)
@@ -157,7 +144,6 @@ local PredCorner = Instance.new("UICorner")
 PredCorner.CornerRadius = UDim.new(0, 4)
 PredCorner.Parent = PredictionInput
 
--- Functions
 SpeedInput.FocusLost:Connect(function()
 	local num = tonumber(SpeedInput.Text)
 	if num then
@@ -198,24 +184,18 @@ local function checkLineOfSight(spos, vec, currentdist, targetModel)
 	local myCharacter = LocalPlayer.Character
 	if not myCharacter then return false end
 	params2.FilterDescendantsInstances = {myCharacter}
-
 	local currentPos = spos
 	local remainingDist = currentdist
-
 	while remainingDist > 0 do
 		local rayResult = workspace:Raycast(currentPos + (vec * 0.01), vec * remainingDist, params2)
 		if not rayResult then return true end
-
 		local hitPart = rayResult.Instance
 		local hitPos = rayResult.Position
-
 		if hitPart == targetModel or hitPart:IsDescendantOf(targetModel) then
 			return true
 		end
-
 		local p1 = hitPart.Parent
 		local p2 = p1 and p1.Parent
-
 		local isIgnored = (hitPart.Transparency >= 0.5)
 			or hitPart.Name == "Handle"
 			or string.sub(hitPart.Name, 1, 6) == "Effect"
@@ -223,7 +203,6 @@ local function checkLineOfSight(spos, vec, currentdist, targetModel)
 			or (p1 and (p1:IsA("Hat") or p1:IsA("Accessory") or p1:IsA("Tool")))
 			or (p1 and p1:FindFirstChild("Armor"))
 			or (p2 and p2:FindFirstChild("Armor"))
-
 		if isIgnored then
 			local traveled = (hitPos - currentPos).Magnitude
 			remainingDist = remainingDist - traveled
@@ -240,27 +219,20 @@ local function getPartUnderCrosshair()
 	local camCFrame = Camera.CFrame
 	local camPos = camCFrame.Position
 	local lookDir = camCFrame.LookVector
-
 	local highestDot = 0.975
 	local bestPart = nil
 	local enemiesFolder = workspace:FindFirstChild("Enemies")
-
 	if not enemiesFolder then return nil end
-
 	for _, object in enemiesFolder:GetChildren() do
 		if not object:IsA("Model") then continue end
-
 		local humanoid = object:FindFirstChildOfClass("Humanoid")
 		if not humanoid or humanoid.Health <= 0 then continue end
-
 		local head = object:FindFirstChild("Head")
 		if head then
 			local partPos = head.Position
 			local dist = (partPos - camPos).Magnitude
-
 			local dirToTarget = (partPos - camPos).Unit
 			local dotProd = lookDir:Dot(dirToTarget)
-
 			if dotProd > highestDot then
 				if checkLineOfSight(camPos, dirToTarget, dist, object) then
 					highestDot = dotProd
@@ -272,16 +244,13 @@ local function getPartUnderCrosshair()
 	return bestPart
 end
 
--- Main Aimbot Loop
+local Connection
 Connection = RunService.RenderStepped:Connect(function()
 	if not isAimbotEnabled then return end
-
 	local myCharacter = LocalPlayer.Character
 	if not myCharacter then return end
-
 	local humanoid = myCharacter:FindFirstChildOfClass("Humanoid")
 	if humanoid and humanoid.Health <= 0 then return end
-
 	if not myCharacter:FindFirstChildOfClass("Tool") then return end
 
 	local targetPart = getPartUnderCrosshair()
@@ -290,20 +259,26 @@ Connection = RunService.RenderStepped:Connect(function()
 		local targetPos = targetPart.Position
 		local targetCFrame = targetPart.CFrame
 
-		-- Prediction
-		if usePrediction then
+		local dist = (targetPos - Camera.CFrame.Position).Magnitude
+
+		if usePrediction and dist > 8 then
 			local rootPart = targetModel:FindFirstChild("HumanoidRootPart")
 			if rootPart then
 				local velocity = rootPart.AssemblyLinearVelocity
-				local predictedPos = targetPos + velocity * predictionAmount
+				local effectivePrediction = predictionAmount * math.clamp(dist / 40, 0.3, 1.2)
+				local predictedPos = targetPos + velocity * effectivePrediction
 				targetPos = predictedPos
-
-				-- Keep head rotation
 				targetCFrame = CFrame.new(predictedPos) * targetCFrame.Rotation
 			end
 		end
 
 		local targetAimCFrame = CFrame.new(Camera.CFrame.Position, targetPos)
-		Camera.CFrame = Camera.CFrame:Lerp(targetAimCFrame, trackingSensitivity)
+		local currentSens = trackingSensitivity
+		if dist < 15 then
+			currentSens = trackingSensitivity * 1.35
+		elseif dist < 8 then
+			currentSens = trackingSensitivity * 1.8
+		end
+		Camera.CFrame = Camera.CFrame:Lerp(targetAimCFrame, math.clamp(currentSens, 0.05, 0.95))
 	end
 end)
